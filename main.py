@@ -3,35 +3,57 @@ from dotenv import load_dotenv
 import httpx 
 # sound stuff 
 import subprocess # for playing separate files 
-from pathlib import Path
+
 
 load_dotenv() 
 key= os.environ["XC_API_KEY"]
 
-bird_name = input("Bird name: ") # user input 
 
-params = {
-    "query":f'en:"{bird_name}" q:A len:5-40',
-    "key": key
 
-}
+bird_name = input("Bird name: ").strip() # user input 
 
-try: 
+def search(bird_name, queries, key): 
+    # searches in XC, should return a list of recordings
+
+    print(f"trying {queries}")
+    params = {
+        "query":f'en:"{bird_name}" {queries}'.strip(),
+        "key": key
+    }
+
     response  = httpx.get(
-    "https://xeno-canto.org/api/3/recordings", 
-    params=params, 
-    timeout=10
+        "https://xeno-canto.org/api/3/recordings", 
+        params=params, 
+        timeout=10
     )
-
     response.raise_for_status()
 
     data = response.json() 
-    recordings = data["recordings"]
-    # print(data)
+
+    return data["recordings"]
+
+
+
+# attempts search multiple times, from the most restrictive (highest quality) to least restrictive (lowest quality)
+attempts=[
+    "q:A len:5-40", # highest quality audio, short length
+    "q:A", # high quality audio of any length
+    "q_gt:C len:5-40", # A or B, short
+    "" # anything
+]
+
+try: 
+
+    recordings = []
+    for request in attempts: 
+        recordings = search(bird_name,request,key)
+        if len(recordings)>0: # if recordings are found, search is done
+            break
 
     if len(recordings)==0: # if nothing found 
         print(f"No recordings found for '{bird_name}'")
         exit()
+    
     best_recording = sorted(recordings, key=lambda rec:rec["q"])[0]
 
     # print useful stuff 
@@ -47,10 +69,10 @@ try:
     # download and play the sound 
     audio_url = best_recording["file"]
 
-    os.makedirs("cache",exist_ok=True) # make invis cache folder
+    os.makedirs(".cache",exist_ok=True) # make invis cache folder
     xc_name = best_recording["file-name"]
     file_suffix = os.path.splitext(xc_name)[1] # creates a tuple containing file name and suffix, suffix is the element of position 1 
-    audio_path = os.path.join("cache",f"XC{best_recording['id']}{file_suffix}")
+    audio_path = os.path.join(".cache",f"XC{best_recording['id']}{file_suffix}")
 
     if not os.path.exists(audio_path): # if file alr exists 
         print("downloading..")
