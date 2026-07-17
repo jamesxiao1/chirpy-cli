@@ -66,6 +66,35 @@ try:
 
     # print(best_recording)
 
+    places = {}
+    for r in recordings: 
+        country = r["cnt"]
+        places[country]=places.get(country,0) +1 
+    # print (places) # it works :)
+
+    # sort by largest to smallest and grab top 5 
+    copy = places.copy()
+    top_places=[]
+    for i in range(5): 
+        
+        if len(copy)==0: # if less than 5 entries
+            break
+
+        best_place=""
+        best_count=0
+        for place,count in copy.items():
+            if count>best_count: 
+                best_place=place
+                best_count=count
+        top_places.append((best_place,best_count))
+        del copy[best_place] 
+    # print(top_places) # it works 
+    print(f"\nMost recorded in (based on {len(recordings)} samples): ")
+    for i, (place,count) in enumerate(top_places,start=1): 
+        print(f"{i}     {place},   {count} recordings")
+    
+
+
     # download and play the sound 
     audio_url = best_recording["file"]
 
