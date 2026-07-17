@@ -32,6 +32,30 @@ def search(bird_name, queries, key):
 
     return data["recordings"]
 
+def play_sound(recording): 
+    # download and play the sound 
+    audio_url = best_recording["file"]
+
+    os.makedirs(".cache",exist_ok=True) # make invis cache folder
+    xc_name = best_recording["file-name"]
+    file_suffix = os.path.splitext(xc_name)[1] # creates a tuple containing file name and suffix, suffix is the element of position 1 
+    audio_path = os.path.join(".cache",f"XC{best_recording['id']}{file_suffix}")
+
+    if not os.path.exists(audio_path): # if file alr exists 
+        print("downloading..")
+        audio_response=httpx.get(
+            audio_url, 
+            timeout=10,
+            follow_redirects=True
+        )
+        audio_response.raise_for_status()
+
+        f = open(audio_path, "wb") # open the file, wb = write binary
+        f.write(audio_response.content) # creates WC{audio_path}.mp3 with audio_response containing mp3 files
+        f.close()
+        
+    print(f"playing {recording['en']} recording...")
+    subprocess.run(["afplay","-t","20",audio_path]) # play for 20 sec at most
 
 
 # attempts search multiple times, from the most restrictive (highest quality) to least restrictive (lowest quality)
@@ -65,6 +89,7 @@ try:
     print(f"xeno-canto XC{best_recording['id']}")
 
     # print(best_recording)
+    play_sound(best_recording)
 
     places = {}
     for r in recordings: 
@@ -105,30 +130,8 @@ try:
         print(f"Recorded in: {best_recording['loc']}, {best_recording['cnt']}")
         print(f"xeno-canto XC{best_recording['id']}")
 
+        play_sound(best_recording)
 
-    # download and play the sound 
-    audio_url = best_recording["file"]
-
-    os.makedirs(".cache",exist_ok=True) # make invis cache folder
-    xc_name = best_recording["file-name"]
-    file_suffix = os.path.splitext(xc_name)[1] # creates a tuple containing file name and suffix, suffix is the element of position 1 
-    audio_path = os.path.join(".cache",f"XC{best_recording['id']}{file_suffix}")
-
-    if not os.path.exists(audio_path): # if file alr exists 
-        print("downloading..")
-        audio_response=httpx.get(
-            audio_url, 
-            timeout=10,
-            follow_redirects=True
-        )
-        audio_response.raise_for_status()
-
-        f = open(audio_path, "wb") # open the file, wb = write binary
-        f.write(audio_response.content) # creates WC{audio_path}.mp3 with audio_response containing mp3 files
-        f.close()
-        
-    print(f"playing {bird_name} recording...")
-    subprocess.run(["afplay","-t","20",audio_path]) # play for 20 sec at most
 
 except httpx.ReadTimeout: 
     print("it took too long to respond")
