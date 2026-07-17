@@ -1,6 +1,8 @@
 import os 
 from dotenv import load_dotenv 
 import httpx 
+# sound stuff 
+import subprocess # for playing separate files 
 
 load_dotenv() 
 key= os.environ["XC_API_KEY"]
@@ -39,8 +41,27 @@ try:
     print(f"Recordist: {best_recording['rec']}, Quality: {best_recording['q']}, Length: {best_recording['length']}")
     print(f"xeno-canto XC{best_recording['id']}")
 
+    # download and play the sound 
+    audio_url = best_recording["file"]
 
+    os.makedirs(".cache",exist_ok=True) # make invis cache folder
+    audio_path = os.path.join(".cache",f"XC{best_recording['id']}.mp3")
 
+    if not os.path.exists(audio_path): # if file alr exists 
+        print("downloading..")
+        audio_response=httpx.get(
+            audio_url, 
+            timeout=10,
+            follow_redirects=True
+        )
+        audio_response.raise_for_status()
+
+        f = open(audio_path, "wb") # open the file, wb = write binary
+        f.write(audio_response.content) # creates WC{audio_path}.mp3 with audio_response containing mp3 files
+        f.close()
+        
+    print(f"playing {bird_name} recording...")
+    subprocess.run(["afplay","-t","20",audio_path]) # play for 20 sec at most
 
 except httpx.ReadTimeout: 
     print("it took too long to respond")
