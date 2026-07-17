@@ -93,6 +93,17 @@ try:
     for i, (place,count) in enumerate(top_places,start=1): 
         print(f"{i}     {place},   {count} recordings")
     
+    choice = (input("\n Do you want to hear it from a different country? (enter a number, or click enter to skip)")).strip()
+    if choice: 
+        new_place = top_places[int(choice)-1][0] # string!
+        recordings_from_new_place = []
+        for r in recordings: 
+            if r["cnt"]==new_place: 
+                recordings_from_new_place.append(r)
+        best_recording = sorted(recordings_from_new_place, key=lambda rec:rec["q"])[0]
+        print(f"\nSwitching to a recording from {new_place}")
+        print(f"Recorded in: {best_recording['loc']}, {best_recording['cnt']}")
+        print(f"xeno-canto XC{best_recording['id']}")
 
 
     # download and play the sound 
