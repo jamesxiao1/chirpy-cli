@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import httpx 
 # sound stuff 
 import subprocess # for playing separate files 
+from pathlib import Path
 
 load_dotenv() 
 key= os.environ["XC_API_KEY"]
@@ -41,11 +42,15 @@ try:
     print(f"Recordist: {best_recording['rec']}, Quality: {best_recording['q']}, Length: {best_recording['length']}")
     print(f"xeno-canto XC{best_recording['id']}")
 
+    # print(best_recording)
+
     # download and play the sound 
     audio_url = best_recording["file"]
 
-    os.makedirs(".cache",exist_ok=True) # make invis cache folder
-    audio_path = os.path.join(".cache",f"XC{best_recording['id']}.mp3")
+    os.makedirs("cache",exist_ok=True) # make invis cache folder
+    xc_name = best_recording["file-name"]
+    file_suffix = os.path.splitext(xc_name)[1] # creates a tuple containing file name and suffix, suffix is the element of position 1 
+    audio_path = os.path.join("cache",f"XC{best_recording['id']}{file_suffix}")
 
     if not os.path.exists(audio_path): # if file alr exists 
         print("downloading..")
