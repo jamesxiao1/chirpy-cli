@@ -34,12 +34,12 @@ def search(bird_name, queries, key):
 
 def play_sound(recording): 
     # download and play the sound 
-    audio_url = best_recording["file"]
+    audio_url = recording["file"]
 
     os.makedirs(".cache",exist_ok=True) # make invis cache folder
-    xc_name = best_recording["file-name"]
+    xc_name = recording["file-name"]
     file_suffix = os.path.splitext(xc_name)[1] # creates a tuple containing file name and suffix, suffix is the element of position 1 
-    audio_path = os.path.join(".cache",f"XC{best_recording['id']}{file_suffix}")
+    audio_path = os.path.join(".cache",f"XC{recording['id']}{file_suffix}")
 
     if not os.path.exists(audio_path): # if file alr exists 
         print("downloading..")
