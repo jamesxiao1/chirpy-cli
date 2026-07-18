@@ -13,7 +13,7 @@ key= os.environ["XC_API_KEY"]
 
 
 
-bird_name = input("Bird name: ").strip() # user input 
+
 
 def search(query,key): 
     # returns a list of recordings from XC
@@ -106,7 +106,7 @@ def count_places(recordings, val):
     # counts how many recordings have a specific val
     places = {}
     for r in recordings: 
-        country = r["cnt"]
+        country = r[val]
         places[country]=places.get(country,0) +1 
     return places
 
@@ -125,8 +125,8 @@ attempts=[
     "" # anything
 ]
 
-try: 
-
+def search_by_name(key): 
+    bird_name = input("Bird name: ").strip() # user input 
     recordings = []
     for request in attempts: 
         recordings = search(f'en:"{bird_name}" {request}'.strip(),key)
@@ -135,12 +135,10 @@ try:
 
     if len(recordings)==0: # if nothing found 
         print(f"No recordings found for '{bird_name}'")
-        exit()
+        return
     
-    
-
     # print useful stuff 
-    best_recording = None # placeholder, replace
+    best_recording = pick_best(recordings) # placeholder, replace
     print(f"{best_recording['en']} ({best_recording['gen']} {best_recording['sp']})")
     print(f"Recorded in: {best_recording['loc']}, {best_recording['cnt']}")
     print(f"Coordinates: {best_recording['lat']}, {best_recording['lon']}")
@@ -150,41 +148,64 @@ try:
     # print(best_recording)
     play_sound(best_recording)
 
+    places = count_places(recordings,"cnt")
+    top_places = top_n(places,5)
 
-
-    # sort by largest to smallest and grab top 5 
-    copy = places.copy()
-    top_places=[]
-    for i in range(5): 
-        
-        if len(copy)==0: # if less than 5 entries
-            break
-
-        best_place=""
-        best_count=0
-        for place,count in copy.items():
-            if count>best_count: 
-                best_place=place
-                best_count=count
-        top_places.append((best_place,best_count))
-        del copy[best_place] 
-    # print(top_places) # it works 
     print(f"\nMost recorded in (based on {len(recordings)} samples): ")
     for i, (place,count) in enumerate(top_places,start=1): 
         print(f"{i}     {place},   {count} recordings")
-    
+    print("Note: shows where recordings were made, not where the bird lives")
+
     choice = (input("\n Do you want to hear it from a different country? (enter a number, or click enter to skip)")).strip()
     if choice: 
         new_place = top_places[int(choice)-1][0] # string!
+        filtered_new_cnt=filter_by(recordings, "cnt", new_place)
+        best_recording =pick_best(filtered_new_cnt)
 
-    
-        # do filter by here
-        best_recording = sorted(recordings_from_new_place, key=lambda rec:rec["q"])[0]
         print(f"\nSwitching to a recording from {new_place}")
         print(f"Recorded in: {best_recording['loc']}, {best_recording['cnt']}")
         print(f"xeno-canto XC{best_recording['id']}")
 
         play_sound(best_recording)
+
+def birds_near_me(key): 
+    place=input("location (city or lat,lon): ").strip()
+    coords = get_coords(place)
+    if coords is None: 
+        print(f"couldn't find '{place}'")
+        return 
+    lat,lon=coords 
+    print(f"{place}->{lat},{lon}") # shows the coords 
+
+    # start the box around it 
+    box = make_box(lat,lon,25) # its 25km radius
+    nearby = search(f"box:{box}",key)
+
+    if len(nearby)==0: # if the list is empty in the box of the location
+        print("No recordings are near here")
+        return 
+    
+    species = count_places(nearby,"en")
+    top_species =top_n(species,10)
+
+    print(f"\nBirds were recorded near {place}, ({len(nearby)} recordings), {len(species)}")
+    for i,(name,count) in enumerate(top_species,start=1): 
+        print(f"{i}     {name},   {count} recordings")
+    print("Note: shows where recordings were made, not where the bird lives")
+
+    choice =input("\ndo you want to hear one? (enter a number or enter to skip)").strip()
+    if choice: 
+        chosen=top_species[int(choice)-1][0]
+        filtered_cnt=filter_by(nearby,"en",chosen)
+        best=pick_best(filtered_cnt)
+        print(f"\ntheres a {best['en']} in {best['loc']}!")
+        play_sound(best)
+
+
+
+try: 
+
+    pass
 
 
 except httpx.ReadTimeout: 
