@@ -98,6 +98,25 @@ def top_n(counts,n):
         del counts_copy[best_key]
     return results
 
+def pick_best(recordings): 
+    # finds the best recording
+    return sorted(recordings, key=lambda rec:rec["q"])[0]
+
+def count_places(recordings, val): 
+    # counts how many recordings have a specific val
+    places = {}
+    for r in recordings: 
+        country = r["cnt"]
+        places[country]=places.get(country,0) +1 
+    return places
+
+def filter_by(recordings, field, val): 
+    new = []
+    for r in recordings: 
+        if r[field]==val: 
+            new.append(r)
+    return new 
+
 # attempts search multiple times, from the most restrictive (highest quality) to least restrictive (lowest quality)
 attempts=[
     "q:A len:5-40", # highest quality audio, short length
@@ -107,27 +126,6 @@ attempts=[
 ]
 
 try: 
-    # # test to print birds in pittsburgh area, first 10 recs
-    # test = search("box:40.2,-80.2,40.6,-79.8", key)
-    # print(f"got {len(test)} recordings")
-    # for r in test[:10]:
-    #     print(f"  {r['en']} — {r['loc']}")
-    # exit()
-
-    place = input("Location (city or lat,lon): ").strip()
-    coords = get_coords(place)
-    if coords is None:
-        print(f"Couldn't find '{place}'")
-        exit()
-    lat,lon = coords
-    print(f"{place} -> {lat}, {lon}")
-
-    box = make_box(lat, lon, 25)
-    test = search(f"box:{box}", key)
-    print(f"got {len(test)} recordings")
-    for r in test[:10]:
-        print(f"  {r['en']} — {r['loc']}")
-    exit()
 
     recordings = []
     for request in attempts: 
@@ -139,10 +137,10 @@ try:
         print(f"No recordings found for '{bird_name}'")
         exit()
     
-    best_recording = sorted(recordings, key=lambda rec:rec["q"])[0]
+    
 
     # print useful stuff 
-     
+    best_recording = None # placeholder, replace
     print(f"{best_recording['en']} ({best_recording['gen']} {best_recording['sp']})")
     print(f"Recorded in: {best_recording['loc']}, {best_recording['cnt']}")
     print(f"Coordinates: {best_recording['lat']}, {best_recording['lon']}")
@@ -152,11 +150,7 @@ try:
     # print(best_recording)
     play_sound(best_recording)
 
-    places = {}
-    for r in recordings: 
-        country = r["cnt"]
-        places[country]=places.get(country,0) +1 
-    # print (places) # it works :)
+
 
     # sort by largest to smallest and grab top 5 
     copy = places.copy()
@@ -182,10 +176,9 @@ try:
     choice = (input("\n Do you want to hear it from a different country? (enter a number, or click enter to skip)")).strip()
     if choice: 
         new_place = top_places[int(choice)-1][0] # string!
-        recordings_from_new_place = []
-        for r in recordings: 
-            if r["cnt"]==new_place: 
-                recordings_from_new_place.append(r)
+
+    
+        # do filter by here
         best_recording = sorted(recordings_from_new_place, key=lambda rec:rec["q"])[0]
         print(f"\nSwitching to a recording from {new_place}")
         print(f"Recorded in: {best_recording['loc']}, {best_recording['cnt']}")
