@@ -188,7 +188,7 @@ def birds_near_me(key):
     species = count_places(nearby,"en")
     top_species =top_n(species,10)
 
-    print(f"\nBirds were recorded near {place}, ({len(nearby)} recordings), {len(species)}")
+    print(f"\nBirds were recorded near {place}, ({len(nearby)} recordings), {len(species)} species live here")
     for i,(name,count) in enumerate(top_species,start=1): 
         print(f"{i}     {name},   {count} recordings")
     print("Note: shows where recordings were made, not where the bird lives")
@@ -205,7 +205,16 @@ def birds_near_me(key):
 
 try: 
 
-    pass
+    print("(1) search a bird by name or,\n(2) finds birds by location, birds near me!")
+    la_version=input("choose: ").strip()
+
+    if la_version=="1": 
+        search_by_name(key)
+    elif la_version=="2": 
+        birds_near_me(key)
+    else: 
+        print("pick 1 or 2 bro")
+    
 
 
 except httpx.ReadTimeout: 
