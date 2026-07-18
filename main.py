@@ -6,6 +6,8 @@ import subprocess # for playing separate files
 # for geolocation stuff 
 import math 
 from geopy.geocoders import Nominatim 
+# for current time 
+from datetime import datetime
 
 
 load_dotenv() 
@@ -35,7 +37,7 @@ def search(query,key):
 
     return data["recordings"]
 
-def play_sound(recording): 
+def play_sound(recording,seconds=20): 
     # download and play the sound 
     audio_url = recording["file"]
 
@@ -58,7 +60,7 @@ def play_sound(recording):
         f.close()
         
     print(f"playing {recording['en']} recording...")
-    subprocess.run(["afplay","-t","20",audio_path]) # play for 20 sec at most
+    subprocess.run(["afplay","-t",str(seconds),audio_path]) # play for 20 sec at most
 
 def get_coords(place): 
     # accepts "40.44,-79.99" OR "Pittsburgh, PA" -> returns (lat, lon)
@@ -201,19 +203,68 @@ def birds_near_me(key):
         print(f"\ntheres a {best['en']} in {best['loc']}!")
         play_sound(best)
 
+def morning_sounds(key): 
+    place = input("Where are you? Location (city or lat,lon): ").strip() 
+    coords = get_coords(place)
+    if coords is None: 
+        print(f"couldn't find '{place}'")
+        return 
+    lat,lon=coords 
 
+    box= make_box(lat,lon,50)
+    month=datetime.now().month
+    month_name = datetime.now().strftime("%B")
+
+    nearby = search(f"box:{box} month:{month}",key)
+    seasonal=True 
+
+    if len(nearby)<10: # month will constrain the dataset
+        print(f"(not many {month_name} recordings here, using all year)")
+        nearby=search(f"box:{box}",key)
+        seasonal=False
+    if len(nearby)==0: # if its empty
+        print("no recordings in this time")
+        return 
+    
+    species =count_places(nearby,"en")
+    cast=top_n(species,6) # the vocal cast
+
+    if seasonal: 
+        print(f"\nThere is a chorus in {place} during {month_name}")
+    else: 
+        print(f"\nThere is a churus near {place}, and its year-round")
+
+    print("The birds singing are: ")
+    for i,(name,count) in enumerate(cast,start=1): 
+        print(f"    {i}.   {name}")
+    print()
+    input("press enter to begin..")
+
+
+    for i,(name,count) in enumerate(cast,start=1): 
+        species_cnt=filter_by(nearby,"en", name)
+        best=pick_best(species_cnt)
+
+        print(f"\n[{i}/num {len(cast)}] {name}")
+        print(f"    {best['loc']}")
+        print(f"    recorded by {best['rec']}")
+        play_sound(best,8)
+
+    print("\nThis is the end of the chorus")
 
 try: 
 
-    print("(1) search a bird by name or,\n(2) finds birds by location, birds near me!")
+    print("(1) search a bird by name or,\n(2) finds birds by location, birds near me!, or\n(3) listen to a morning chorus of birds in a specific location")
     la_version=input("choose: ").strip()
 
     if la_version=="1": 
         search_by_name(key)
     elif la_version=="2": 
         birds_near_me(key)
+    elif la_version=="3": 
+        morning_sounds(key)
     else: 
-        print("pick 1 or 2 bro")
+        print("pick 1 or 2 or 3 bro")
     
 
 
