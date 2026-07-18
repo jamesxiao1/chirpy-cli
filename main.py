@@ -3,6 +3,9 @@ from dotenv import load_dotenv
 import httpx 
 # sound stuff 
 import subprocess # for playing separate files 
+# for geolocation stuff 
+import math 
+from geopy.geocoders import Nominatim 
 
 
 load_dotenv() 
@@ -57,6 +60,43 @@ def play_sound(recording):
     print(f"playing {recording['en']} recording...")
     subprocess.run(["afplay","-t","20",audio_path]) # play for 20 sec at most
 
+def get_coords(place): 
+    # accepts "40.44,-79.99" OR "Pittsburgh, PA" -> returns (lat, lon)
+    if "," in place: 
+        parts = place.split(",") # is a list
+        try: # if its coordinates, numbers 
+            return (float(parts[0]), float(parts[1]))
+        except ValueError: 
+            pass # not numbers, treat it as a place name
+    geolocator = Nominatim(user_agent="chirpy-cli")
+    location = geolocator.geocode(place)
+    if location is None: # if its something random
+        return None 
+    return (location.latitude, location.longitude)
+
+def make_box(lat,lon,radius_km): 
+    # turns a center point + radius into a box 
+    dlat=radius_km/111.0 # convert km to lat
+    dlon = radius_km/(111.0*math.cos(math.radians(lat))) # km to lon
+
+    return f"{lat-dlat},{lon-dlon},{lat+dlat},{lon+dlon}" 
+
+def top_n(counts,n): 
+    # should take in a dict, return the top n as (key,count) pairs
+    counts_copy=counts.copy()
+    results=[]
+    for i in range(n): 
+        if len(counts_copy)==0: # if its empty
+            break
+        best_key=""
+        best_count=0
+        for k,count in counts_copy.items(): 
+            if count>best_count: 
+                best_key=k
+                best_count=count
+        results.append((best_key,best_count))
+        del counts_copy[best_key]
+    return results
 
 # attempts search multiple times, from the most restrictive (highest quality) to least restrictive (lowest quality)
 attempts=[
@@ -67,6 +107,27 @@ attempts=[
 ]
 
 try: 
+    # # test to print birds in pittsburgh area, first 10 recs
+    # test = search("box:40.2,-80.2,40.6,-79.8", key)
+    # print(f"got {len(test)} recordings")
+    # for r in test[:10]:
+    #     print(f"  {r['en']} — {r['loc']}")
+    # exit()
+
+    place = input("Location (city or lat,lon): ").strip()
+    coords = get_coords(place)
+    if coords is None:
+        print(f"Couldn't find '{place}'")
+        exit()
+    lat,lon = coords
+    print(f"{place} -> {lat}, {lon}")
+
+    box = make_box(lat, lon, 25)
+    test = search(f"box:{box}", key)
+    print(f"got {len(test)} recordings")
+    for r in test[:10]:
+        print(f"  {r['en']} — {r['loc']}")
+    exit()
 
     recordings = []
     for request in attempts: 
