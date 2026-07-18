@@ -8,6 +8,7 @@ import math
 from geopy.geocoders import Nominatim 
 # for current time 
 from datetime import datetime
+import time 
 
 
 load_dotenv() 
@@ -37,8 +38,8 @@ def search(query,key):
 
     return data["recordings"]
 
-def play_sound(recording,seconds=20): 
-    # download and play the sound 
+def get_audio(recording): 
+    # downloads the sound if we don't have it, returns the path to the file
     audio_url = recording["file"]
 
     os.makedirs(".cache",exist_ok=True) # make invis cache folder
@@ -58,9 +59,19 @@ def play_sound(recording,seconds=20):
         f = open(audio_path, "wb") # open the file, wb = write binary
         f.write(audio_response.content) # creates WC{audio_path}.mp3 with audio_response containing mp3 files
         f.close()
-        
+
+    return audio_path
+
+def play_sound(recording,seconds=20): 
+    # plays a sound and WAITS for it to finish
+    audio_path = get_audio(recording)
     print(f"playing {recording['en']} recording...")
     subprocess.run(["afplay","-t",str(seconds),audio_path]) # play for 20 sec at most
+
+def play_sound_ATTHESAMETIME(recording,seconds=20,volume=1.0): 
+    # plays the sounds at the same time lol
+    audio_path = get_audio(recording)
+    return subprocess.Popen(["afplay","-v",str(volume),"-t",str(seconds),audio_path]) # popen plays it at the same time
 
 def get_coords(place): 
     # accepts "40.44,-79.99" OR "Pittsburgh, PA" -> returns (lat, lon)
@@ -238,17 +249,37 @@ def morning_sounds(key):
     for i,(name,count) in enumerate(cast,start=1): 
         print(f"    {i}.   {name}")
     print()
+    
+
+    # gotta download all the files first 
+    print("downloading the bird noises")
+    singers=[]
+    for (name,count) in cast: 
+        species_cnt=filter_by(nearby,"en",name)
+        best=pick_best(species_cnt)
+        get_audio(best) # download then cache it 
+        singers.append(best)
+    
     input("press enter to begin..")
 
+    processes = []
+    for i,rec in enumerate(singers,start=1): 
+        print(f"\n[{i}/{len(singers)}] {rec['en']}")
+        print(f"    {rec['loc']}")
+        print(f"    recorded by {rec['rec']}")
 
-    for i,(name,count) in enumerate(cast,start=1): 
-        species_cnt=filter_by(nearby,"en", name)
-        best=pick_best(species_cnt)
+        p = play_sound_ATTHESAMETIME(rec, 25, 0.7) # no wait happens
+        processes.append(p)
+        time.sleep(2.5) # stagger so they layer 
 
-        print(f"\n[{i}/num {len(cast)}] {name}")
-        print(f"    {best['loc']}")
-        print(f"    recorded by {best['rec']}")
-        play_sound(best,8)
+    try: 
+        for p in processes: 
+            p.wait() # wait for every bird to finish singing
+    except KeyboardInterrupt: 
+        for p in processes: 
+
+            p.terminate() # ctrl+c kills the birds too
+    
 
     print("\nThis is the end of the chorus")
 
