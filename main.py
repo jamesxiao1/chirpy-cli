@@ -12,13 +12,13 @@ key= os.environ["XC_API_KEY"]
 
 bird_name = input("Bird name: ").strip() # user input 
 
-def search(bird_name, queries, key): 
-    # searches in XC, should return a list of recordings
+def search(query,key): 
+    # returns a list of recordings from XC
 
-    print(f"trying {queries}")
+    print(f"trying {query}")
     params = {
-        "query":f'en:"{bird_name}" {queries}'.strip(),
-        "key": key
+        "query": query, 
+        "key":key
     }
 
     response  = httpx.get(
@@ -26,8 +26,8 @@ def search(bird_name, queries, key):
         params=params, 
         timeout=10
     )
-    response.raise_for_status()
 
+    response.raise_for_status()
     data = response.json() 
 
     return data["recordings"]
@@ -70,7 +70,7 @@ try:
 
     recordings = []
     for request in attempts: 
-        recordings = search(bird_name,request,key)
+        recordings = search(f'en:"{bird_name}" {request}'.strip(),key)
         if len(recordings)>0: # if recordings are found, search is done
             break
 
