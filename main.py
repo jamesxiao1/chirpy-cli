@@ -279,6 +279,8 @@ def morning_sounds(key):
         for p in processes: 
 
             p.terminate() # ctrl+c kills the birds too
+    except:
+        # do smth here
     
 
     print("\nThis is the end of the chorus")
